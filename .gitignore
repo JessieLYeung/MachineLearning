@@ -1,0 +1,27 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+.env
+*.sqlite
+.DS_Store
+Thumbs.db
+# VS Code
+.vscode/
+# Python egg
+*.egg-info/
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# Ignore virtualenv folders
+.venv/
+venv/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# OneDrive temp
+~$*
