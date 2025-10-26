@@ -46,14 +46,6 @@ A live web app that provides anime recommendations using **cosine similarity** o
 4. **Fuzzy Matching** — Handles partial/misspelled titles with difflib
 5. **Smart Ranking** — Sorts by similarity score (0-1 scale)
 
-## Recent Improvements
-- ✅ **Caching** — `@st.cache_data` speeds up app reloads significantly
-- ✅ **Pinned dependencies** — version ranges ensure reproducible deployments
-- ✅ **Pytest test suite** — 8 comprehensive tests validate functionality
-- ✅ **Cosine similarity** — vector-based recommendations (more robust than heuristics)
-- ✅ **Fuzzy matching** — handles typos and partial titles
-- ✅ **Better data handling** — imputes missing values instead of dropping rows
-
 ## Dataset
 - **Source:** `anime.csv` (12,000+ anime titles)
 - **Fields:** name, genre, type, episodes, rating, members
@@ -61,42 +53,6 @@ A live web app that provides anime recommendations using **cosine similarity** o
   - Missing episodes/ratings imputed with median values
   - Genres multi-label encoded (handles multiple genres per anime)
   - Type one-hot encoded (TV, Movie, OVA, ONA, Special, Music)
-
-## For Developers
-
-### Run Locally
-```bash
-git clone https://github.com/JessieLYeung/MachineLearning.git
-cd MachineLearning
-pip install -r requirements.txt
-streamlit run rec.py
-```
-
-### Run Tests
-```bash
-pytest test_rec.py -v
-```
-
-All 8 tests should pass, covering data loading, fuzzy matching, recommendations, and edge cases.
-
-### Contributing
-Pull requests are welcome! Please:
-1. Add tests for new features
-2. Run `pytest test_rec.py` to ensure all tests pass
-3. Update README.md if adding new functionality
-
-## Future Improvements
-- Add anime poster images and links to MyAnimeList
-- Implement autocomplete/selectbox for easier title selection
-- Add filters (genre, type, min rating, max episodes)
-- Show explanation for each recommendation (matching features)
-- Add user watchlist/favorites with session state
-- Integrate collaborative filtering if user rating data available
-
-## Author
-**Karen Yeung**
-- GitHub: [@JessieLYeung](https://github.com/JessieLYeung)
-- Repository: [MachineLearning](https://github.com/JessieLYeung/MachineLearning)
 
 ## License
 MIT License - feel free to use and modify for your projects.
