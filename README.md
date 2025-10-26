@@ -8,18 +8,25 @@ A live web app that provides anime recommendations using **cosine similarity** o
 
 ## Features
 - **Vector-based recommendations** using cosine similarity (not just heuristics)
+- **Autocomplete search** — searchable dropdown with all 12,000+ anime titles
+- **Advanced filters** — filter by type, minimum rating, and required genres
 - **Fuzzy title matching** — handles typos and partial matches
 - **Performance caching** with `@st.cache_data` for fast reloads
 - **Smart data handling** — imputes missing values instead of dropping rows
-- **User-friendly UI** — shows "Did you mean..." suggestions when title not found
+- **Rich UI** — expandable recommendation cards with metrics and progress bars
+- **User-friendly** — shows "Did you mean..." suggestions when title not found
 - **Comprehensive test suite** — 8 pytest tests covering edge cases
 
 ## How to Use
 1. Visit [nextanime.streamlit.app](https://nextanime.streamlit.app)
-2. Enter an anime title (exact or partial match works!)
-3. Adjust the number of recommendations (1-20)
-4. Click "Get recommendations"
-5. Explore similar anime with similarity scores
+2. Use the searchable dropdown to select an anime (start typing to filter)
+3. **Optional:** Adjust filters in the sidebar:
+   - Filter by anime type (TV, Movie, OVA, etc.)
+   - Set minimum rating threshold
+   - Require specific genres
+4. Choose number of recommendations (1-20)
+5. Click "Get Recommendations"
+6. Explore similar anime with detailed metrics and similarity scores
 
 ## What it contains
 - `rec.py` — the Streamlit app and recommendation function
