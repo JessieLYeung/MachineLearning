@@ -105,31 +105,123 @@ if __name__ == '__main__':
     df_cached, features_cached = get_data()
 
     st.set_page_config(page_title='Anime Recommendation', layout='centered')
-    st.title('Anime Recommendation System')
-    st.write("Type an anime title (exact or partial) and get similar recommendations.")
+    st.title('🎬 Anime Recommendation System')
+    st.write("Find similar anime based on genres, type, rating, and more!")
 
-    anime_input = st.text_input('Enter anime title:')
+    # Sidebar for filters
+    st.sidebar.header('🔍 Filters')
+    
+    # Type filter
+    all_types = sorted(df_cached['type'].unique().tolist())
+    selected_types = st.sidebar.multiselect(
+        'Anime Type',
+        options=all_types,
+        default=all_types,
+        help='Filter by anime type (TV, Movie, etc.)'
+    )
+    
+    # Rating filter
+    min_rating = st.sidebar.slider(
+        'Minimum Rating',
+        min_value=0.0,
+        max_value=10.0,
+        value=0.0,
+        step=0.5,
+        help='Only show anime with rating >= this value'
+    )
+    
+    # Genre filter (optional - include these genres)
+    all_genres = sorted(set([
+        genre.strip()
+        for genres_str in df_cached['genre'].dropna()
+        for genre in genres_str.lower().split(',')
+        if genre.strip()
+    ]))
+    
+    include_genres = st.sidebar.multiselect(
+        'Must Include Genres (optional)',
+        options=all_genres,
+        default=[],
+        help='Recommendations must have at least one of these genres'
+    )
+
+    # Main search area
+    st.subheader('Select an anime')
+    
+    # Autocomplete selectbox for anime selection
+    anime_input = st.selectbox(
+        'Search for an anime:',
+        options=[''] + sorted(df_cached['name'].tolist()),
+        index=0,
+        help='Start typing to search'
+    )
+    
+    # Number of recommendations
     top_n = st.slider('Number of recommendations', 1, 20, 5)
 
-    if st.button('Get recommendations'):
+    if st.button('Get Recommendations', type='primary'):
         if not anime_input:
-            st.error('Please enter a title.')
+            st.error('Please select an anime title.')
         else:
-            out = recommendation_system(anime_input, df_cached, features_cached, top_n=top_n)
-            if isinstance(out, str):
-                # a not-found message
-                st.error(out)
-                # also show close suggestions if any
-                close = find_closest_titles(anime_input, df_cached['name'].tolist(), n=5, cutoff=0.4)
-                if close:
-                    st.write('Did you mean:')
-                    for c in close:
-                        st.write(f'- {c}')
-            elif out.empty:
-                st.error('No recommendations found :(')
-            else:
-                st.subheader('Recommended anime:')
-                st.dataframe(out)
+            with st.spinner('Finding similar anime...'):
+                out = recommendation_system(anime_input, df_cached, features_cached, top_n=top_n * 3)  # Get more initially for filtering
+                
+                if isinstance(out, str):
+                    # a not-found message
+                    st.error(out)
+                    # also show close suggestions if any
+                    close = find_closest_titles(anime_input, df_cached['name'].tolist(), n=5, cutoff=0.4)
+                    if close:
+                        st.write('Did you mean:')
+                        for c in close:
+                            st.write(f'- {c}')
+                elif out.empty:
+                    st.error('No recommendations found :(')
+                else:
+                    # Apply filters
+                    filtered = out.copy()
+                    
+                    # Filter by type
+                    if selected_types:
+                        filtered = filtered[filtered['type'].isin(selected_types)]
+                    
+                    # Filter by rating
+                    filtered = filtered[filtered['rating'] >= min_rating]
+                    
+                    # Filter by genres (must contain at least one)
+                    if include_genres:
+                        def has_required_genre(genre_str):
+                            anime_genres = [g.strip() for g in str(genre_str).lower().split(',')]
+                            return any(g in include_genres for g in anime_genres)
+                        
+                        filtered = filtered[filtered['genre'].apply(has_required_genre)]
+                    
+                    # Limit to requested number
+                    filtered = filtered.head(top_n)
+                    
+                    if filtered.empty:
+                        st.warning('No anime match your filters. Try adjusting the filters in the sidebar.')
+                    else:
+                        st.success(f'Found {len(filtered)} recommendations!')
+                        
+                        # Display recommendations
+                        st.subheader('📺 Recommended Anime:')
+                        
+                        for idx, row in filtered.iterrows():
+                            with st.expander(f"**{row['name']}** — Similarity: {row['similarity']:.1%}", expanded=idx==filtered.index[0]):
+                                col1, col2 = st.columns([1, 2])
+                                
+                                with col1:
+                                    st.metric('Rating', f"{row['rating']:.2f}/10")
+                                    st.metric('Type', row['type'])
+                                    st.metric('Episodes', int(row['episodes']) if row['episodes'] == row['episodes'] else 'Unknown')
+                                
+                                with col2:
+                                    st.write('**Genres:**')
+                                    st.write(row['genre'])
+                                    st.write('**Similarity Score:**')
+                                    st.progress(row['similarity'])
+
 
 
 
