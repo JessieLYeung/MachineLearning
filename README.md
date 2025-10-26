@@ -1,5 +1,7 @@
 # Anime Recommendation Streamlit App
 
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://nextanime.streamlit.app)
+
 This Streamlit app provides anime recommendations from a CSV dataset (`anime.csv`) using **cosine similarity** over feature vectors (genres, type, rating, episodes).
 
 ## Features
