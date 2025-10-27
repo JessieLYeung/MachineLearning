@@ -7,14 +7,15 @@ A live web app that provides anime recommendations using **cosine similarity** o
 **🌐 Try it now:** [nextanime.streamlit.app](https://nextanime.streamlit.app)
 
 ## Features
+- **Lightning-fast recommendations** — precomputed similarity matrix for instant results
 - **Vector-based recommendations** using cosine similarity (not just heuristics)
 - **Autocomplete search** — searchable dropdown with all 12,000+ anime titles
 - **Advanced filters** — filter by type, minimum rating, and required genres
 - **Recommendation explanations** — shows shared genres, type match, and rating differences
 - **CSV export** — download your recommendations for offline use
 - **Dataset statistics** — view total anime count, average ratings, and genre diversity
+- **Intelligent caching** — disk cache speeds up subsequent loads
 - **Fuzzy title matching** — handles typos and partial matches
-- **Performance caching** with `@st.cache_data` for fast reloads
 - **Smart data handling** — imputes missing values instead of dropping rows
 - **Rich UI** — expandable recommendation cards with metrics and progress bars
 - **Helpful feedback** — clear messages when filters are too restrictive
@@ -52,9 +53,11 @@ A live web app that provides anime recommendations using **cosine similarity** o
    - Normalized numeric features (episodes, rating)
    - One-hot encoded anime type (TV, Movie, OVA, etc.)
    - Multi-hot encoded genres
-3. **Similarity Calculation** — Uses cosine similarity to find similar anime
-4. **Fuzzy Matching** — Handles partial/misspelled titles with difflib
-5. **Smart Ranking** — Sorts by similarity score (0-1 scale)
+3. **Similarity Precomputation** — Calculates and caches all pairwise cosine similarities (~12K × 12K matrix)
+4. **Instant Lookup** — Recommendations retrieved via index lookup (no computation needed!)
+5. **Fuzzy Matching** — Handles partial/misspelled titles with difflib
+6. **Smart Filtering** — Applies user filters and returns top results
+7. **Intelligent Caching** — Saves processed data to `anime_cache.pkl` for subsequent fast loads
 
 ## Dataset
 - **Source:** `anime.csv` (12,000+ anime titles)
