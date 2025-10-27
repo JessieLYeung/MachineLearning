@@ -9,6 +9,7 @@ import pickle
 import requests
 from io import BytesIO
 from PIL import Image
+import time
 
 
 def load_and_process_data():
@@ -102,14 +103,17 @@ def get_anime_image(anime_name, anime_id=None):
         tuple: (image_url, mal_url) or (None, None) if not found
     """
     try:
+        # Rate limiting: Jikan API allows 3 requests/second, 60/minute
+        time.sleep(0.35)  # ~333ms delay between requests to stay safe
+        
         base_url = "https://api.jikan.moe/v4"
         
         if anime_id:
             # Direct lookup by ID
-            response = requests.get(f"{base_url}/anime/{anime_id}", timeout=3)
+            response = requests.get(f"{base_url}/anime/{anime_id}", timeout=5)
         else:
             # Search by name
-            response = requests.get(f"{base_url}/anime", params={"q": anime_name, "limit": 1}, timeout=3)
+            response = requests.get(f"{base_url}/anime", params={"q": anime_name, "limit": 1}, timeout=5)
         
         if response.status_code == 200:
             data = response.json()
@@ -126,9 +130,12 @@ def get_anime_image(anime_name, anime_id=None):
             mal_url = anime_data.get('url')
             
             return image_url, mal_url
+        elif response.status_code == 429:
+            # Rate limited - return None gracefully
+            return None, None
     except Exception as e:
         # Silently fail - don't break the app if API is down
-        return None, None
+        pass
     
     return None, None
 
@@ -318,8 +325,11 @@ if __name__ == '__main__':
                             rating_diff = abs(row['rating'] - input_anime['rating'])
                             
                             # Fetch anime image (with rate limiting consideration)
-                            anime_id = df_cached.loc[idx, 'anime_id'] if 'anime_id' in df_cached.columns else None
-                            image_url, mal_url = get_anime_image(row['name'], anime_id)
+                            try:
+                                anime_id = row.get('anime_id', None) if hasattr(row, 'get') else (row['anime_id'] if 'anime_id' in row.index else None)
+                                image_url, mal_url = get_anime_image(row['name'], anime_id)
+                            except Exception:
+                                image_url, mal_url = None, None
                             
                             with st.expander(f"**{row['name']}** — Similarity: {row['similarity']:.1%}", expanded=idx==filtered.index[0]):
                                 col0, col1, col2 = st.columns([1, 1, 2])
