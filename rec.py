@@ -28,7 +28,20 @@ def load_and_process_data():
             return pickle.load(f)
     
     print("Processing data from scratch (this may take a moment)...")
-    df = pd.read_csv("anime.csv")
+    
+    # Try to find anime.csv in different possible locations
+    csv_path = None
+    possible_paths = ['anime.csv', './anime.csv', 'data/anime.csv']
+    
+    for path in possible_paths:
+        if os.path.exists(path):
+            csv_path = path
+            break
+    
+    if csv_path is None:
+        raise FileNotFoundError("anime.csv not found! Please ensure the file is in the repository.")
+    
+    df = pd.read_csv(csv_path)
 
     # Decode HTML entities in anime names (e.g., &quot; -> ", &#039; -> ')
     df['name'] = df['name'].apply(lambda x: html.unescape(str(x)) if pd.notna(x) else x)
