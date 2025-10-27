@@ -91,10 +91,6 @@ def load_and_process_data():
     return cache_data
 
 
-# Load data on module import (will be cached in Streamlit)
-df, features, similarity_matrix = load_and_process_data()
-
-
 def find_closest_titles(name, names_list, n=5, cutoff=0.6):
     """Return up to n close matches from names_list for the given name (case-insensitive).
     Uses difflib with a simple cutoff for fuzzy matching."""
