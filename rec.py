@@ -116,6 +116,13 @@ if __name__ == '__main__':
     # Sidebar for filters
     st.sidebar.header('🔍 Filters')
     
+    # Dataset stats
+    with st.sidebar.expander('📊 Dataset Stats', expanded=False):
+        st.metric('Total Anime', f'{len(df_cached):,}')
+        st.metric('Average Rating', f'{df_cached["rating"].mean():.2f}/10')
+        st.metric('Unique Genres', len(all_genres))
+        st.metric('Types', len(all_types))
+    
     # Type filter
     all_types = sorted(df_cached['type'].unique().tolist())
     selected_types = st.sidebar.multiselect(
@@ -185,6 +192,7 @@ if __name__ == '__main__':
                 else:
                     # Apply filters
                     filtered = out.copy()
+                    total_before_filter = len(filtered)
                     
                     # Filter by type
                     if selected_types:
@@ -205,14 +213,40 @@ if __name__ == '__main__':
                     filtered = filtered.head(top_n)
                     
                     if filtered.empty:
-                        st.warning('No anime match your filters. Try adjusting the filters in the sidebar.')
+                        st.warning(f'⚠️ No anime match your current filters.')
+                        st.info(f'''
+                        **Suggestions:**
+                        - Found {total_before_filter} matches before filtering
+                        - Try lowering the minimum rating
+                        - Select more anime types
+                        - Remove or reduce genre requirements
+                        ''')
                     else:
-                        st.success(f'Found {len(filtered)} recommendations!')
+                        st.success(f'✨ Found {len(filtered)} recommendations!')
+                        
+                        # Get input anime details for explanations
+                        input_anime = df_cached[df_cached['name'] == anime_input].iloc[0]
+                        input_genres = set([g.strip() for g in str(input_anime['genre']).lower().split(',')])
+                        
+                        # Add download button
+                        csv = filtered[['name', 'genre', 'type', 'episodes', 'rating', 'similarity']].to_csv(index=False)
+                        st.download_button(
+                            label='📥 Download Recommendations (CSV)',
+                            data=csv,
+                            file_name=f'recommendations_{anime_input.replace(" ", "_")}.csv',
+                            mime='text/csv'
+                        )
                         
                         # Display recommendations
                         st.subheader('📺 Recommended Anime:')
                         
                         for idx, row in filtered.iterrows():
+                            # Calculate explanation details
+                            rec_genres = set([g.strip() for g in str(row['genre']).lower().split(',')])
+                            shared_genres = input_genres & rec_genres
+                            type_match = '✓' if row['type'] == input_anime['type'] else '✗'
+                            rating_diff = abs(row['rating'] - input_anime['rating'])
+                            
                             with st.expander(f"**{row['name']}** — Similarity: {row['similarity']:.1%}", expanded=idx==filtered.index[0]):
                                 col1, col2 = st.columns([1, 2])
                                 
@@ -224,6 +258,13 @@ if __name__ == '__main__':
                                 with col2:
                                     st.write('**Genres:**')
                                     st.write(row['genre'])
+                                    
+                                    st.write('**Why recommended:**')
+                                    if shared_genres:
+                                        st.write(f"• Shared genres: {', '.join(sorted(shared_genres))}")
+                                    st.write(f"• Same type ({row['type']}): {type_match}")
+                                    st.write(f"• Rating difference: ±{rating_diff:.2f}")
+                                    
                                     st.write('**Similarity Score:**')
                                     st.progress(row['similarity'])
 
