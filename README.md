@@ -10,11 +10,14 @@ A live web app that provides anime recommendations using **cosine similarity** o
 - **Vector-based recommendations** using cosine similarity (not just heuristics)
 - **Autocomplete search** — searchable dropdown with all 12,000+ anime titles
 - **Advanced filters** — filter by type, minimum rating, and required genres
+- **Recommendation explanations** — shows shared genres, type match, and rating differences
+- **CSV export** — download your recommendations for offline use
+- **Dataset statistics** — view total anime count, average ratings, and genre diversity
 - **Fuzzy title matching** — handles typos and partial matches
 - **Performance caching** with `@st.cache_data` for fast reloads
 - **Smart data handling** — imputes missing values instead of dropping rows
 - **Rich UI** — expandable recommendation cards with metrics and progress bars
-- **User-friendly** — shows "Did you mean..." suggestions when title not found
+- **Helpful feedback** — clear messages when filters are too restrictive
 - **Comprehensive test suite** — 8 pytest tests covering edge cases
 
 ## How to Use
