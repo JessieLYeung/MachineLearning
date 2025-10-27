@@ -3,6 +3,7 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity as cs
 from sklearn.preprocessing import StandardScaler, MultiLabelBinarizer
 import difflib
+import html
 
 
 def load_and_process_data():
@@ -12,6 +13,10 @@ def load_and_process_data():
         tuple: (df, features) where df is the cleaned DataFrame and features is the feature matrix
     """
     df = pd.read_csv("anime.csv")
+
+    # Decode HTML entities in anime names (e.g., &quot; -> ", &#039; -> ')
+    df['name'] = df['name'].apply(lambda x: html.unescape(str(x)) if pd.notna(x) else x)
+    df['genre'] = df['genre'].apply(lambda x: html.unescape(str(x)) if pd.notna(x) else x)
 
     # convert numeric columns
     df['episodes'] = pd.to_numeric(df['episodes'], errors='coerce')
