@@ -4,14 +4,26 @@ from sklearn.metrics.pairwise import cosine_similarity as cs
 from sklearn.preprocessing import StandardScaler, MultiLabelBinarizer
 import difflib
 import html
+import os
+import pickle
 
 
 def load_and_process_data():
     """Load anime.csv and preprocess features for recommendation.
     
     Returns:
-        tuple: (df, features) where df is the cleaned DataFrame and features is the feature matrix
+        tuple: (df, features, similarity_matrix) where df is the cleaned DataFrame, 
+               features is the feature matrix, and similarity_matrix is precomputed cosine similarities
     """
+    # Check if cached data exists
+    cache_file = 'anime_cache.pkl'
+    
+    if os.path.exists(cache_file):
+        print("Loading cached data...")
+        with open(cache_file, 'rb') as f:
+            return pickle.load(f)
+    
+    print("Processing data from scratch (this may take a moment)...")
     df = pd.read_csv("anime.csv")
 
     # Decode HTML entities in anime names (e.g., &quot; -> ", &#039; -> ')
@@ -48,11 +60,22 @@ def load_and_process_data():
     # final feature matrix: scaled numbers + type one-hot + genre multi-hot
     features = np.hstack([scaled_numbers, type_encoded, genres_encoded])
     
-    return df, features
+    # Precompute similarity matrix (this is the performance boost!)
+    print("Computing similarity matrix...")
+    similarity_matrix = cs(features, features)
+    
+    # Cache everything for future use
+    print("Caching data for next time...")
+    cache_data = (df, features, similarity_matrix)
+    with open(cache_file, 'wb') as f:
+        pickle.dump(cache_data, f)
+    
+    print("✓ Data processing complete!")
+    return cache_data
 
 
 # Load data on module import (will be cached in Streamlit)
-df, features = load_and_process_data()
+df, features, similarity_matrix = load_and_process_data()
 
 
 def find_closest_titles(name, names_list, n=5, cutoff=0.6):
@@ -65,8 +88,8 @@ def find_closest_titles(name, names_list, n=5, cutoff=0.6):
     return [lower_to_orig[m] for m in matches]
 
 
-def recommendation_system(name, df_local, features_matrix, top_n=5):
-    """Recommend anime similar to `name` using cosine similarity over feature vectors.
+def recommendation_system(name, df_local, similarity_matrix, top_n=5):
+    """Recommend anime similar to `name` using precomputed cosine similarity matrix.
 
     Returns a DataFrame of the top_n recommendations (name, genre, type, episodes, rating, similarity).
     If no close match is found, returns a string message.
@@ -84,9 +107,8 @@ def recommendation_system(name, df_local, features_matrix, top_n=5):
         suggested = suggestions[0]
         idx = int(df_local.index[df_local['name'] == suggested][0])
 
-    # compute cosine similarity between target and all items
-    target_vec = features_matrix[idx].reshape(1, -1)
-    sims = cs(target_vec, features_matrix).flatten()
+    # Get precomputed similarities for this anime (instant lookup!)
+    sims = similarity_matrix[idx].copy()
     sims[idx] = -1  # exclude itself
 
     top_idx = np.argsort(sims)[::-1][:top_n]
@@ -107,7 +129,7 @@ if __name__ == '__main__':
         return load_and_process_data()
     
     # Use cached data
-    df_cached, features_cached = get_data()
+    df_cached, features_cached, sim_matrix_cached = get_data()
 
     st.set_page_config(page_title='Anime Recommendation', layout='centered')
     st.title('🎬 Anime Recommendation System')
@@ -115,6 +137,17 @@ if __name__ == '__main__':
 
     # Sidebar for filters
     st.sidebar.header('🔍 Filters')
+    
+    # Type filter
+    all_types = sorted(df_cached['type'].unique().tolist())
+    
+    # Genre filter (optional - include these genres)
+    all_genres = sorted(set([
+        genre.strip()
+        for genres_str in df_cached['genre'].dropna()
+        for genre in genres_str.lower().split(',')
+        if genre.strip()
+    ]))
     
     # Dataset stats
     with st.sidebar.expander('📊 Dataset Stats', expanded=False):
@@ -124,7 +157,6 @@ if __name__ == '__main__':
         st.metric('Types', len(all_types))
     
     # Type filter
-    all_types = sorted(df_cached['type'].unique().tolist())
     selected_types = st.sidebar.multiselect(
         'Anime Type',
         options=all_types,
@@ -142,14 +174,7 @@ if __name__ == '__main__':
         help='Only show anime with rating >= this value'
     )
     
-    # Genre filter (optional - include these genres)
-    all_genres = sorted(set([
-        genre.strip()
-        for genres_str in df_cached['genre'].dropna()
-        for genre in genres_str.lower().split(',')
-        if genre.strip()
-    ]))
-    
+    # Genre filter options
     include_genres = st.sidebar.multiselect(
         'Must Include Genres (optional)',
         options=all_genres,
@@ -176,7 +201,7 @@ if __name__ == '__main__':
             st.error('Please select an anime title.')
         else:
             with st.spinner('Finding similar anime...'):
-                out = recommendation_system(anime_input, df_cached, features_cached, top_n=top_n * 3)  # Get more initially for filtering
+                out = recommendation_system(anime_input, df_cached, sim_matrix_cached, top_n=top_n * 3)  # Get more initially for filtering
                 
                 if isinstance(out, str):
                     # a not-found message

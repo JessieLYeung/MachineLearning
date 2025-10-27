@@ -25,3 +25,6 @@ Thumbs.db
 
 # OneDrive temp
 ~$*
+
+# Cache files
+anime_cache.pkl
