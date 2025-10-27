@@ -6,6 +6,9 @@ import difflib
 import html
 import os
 import pickle
+import requests
+from io import BytesIO
+from PIL import Image
 
 
 def load_and_process_data():
@@ -86,6 +89,48 @@ def find_closest_titles(name, names_list, n=5, cutoff=0.6):
     name_l = name.lower()
     matches = difflib.get_close_matches(name_l, lower_names, n=n, cutoff=cutoff)
     return [lower_to_orig[m] for m in matches]
+
+
+def get_anime_image(anime_name, anime_id=None):
+    """Fetch anime cover image from Jikan API (MyAnimeList).
+    
+    Args:
+        anime_name: Name of the anime to search for
+        anime_id: Optional MAL ID for direct lookup
+    
+    Returns:
+        tuple: (image_url, mal_url) or (None, None) if not found
+    """
+    try:
+        base_url = "https://api.jikan.moe/v4"
+        
+        if anime_id:
+            # Direct lookup by ID
+            response = requests.get(f"{base_url}/anime/{anime_id}", timeout=3)
+        else:
+            # Search by name
+            response = requests.get(f"{base_url}/anime", params={"q": anime_name, "limit": 1}, timeout=3)
+        
+        if response.status_code == 200:
+            data = response.json()
+            
+            if anime_id:
+                anime_data = data.get('data', {})
+            else:
+                results = data.get('data', [])
+                if not results:
+                    return None, None
+                anime_data = results[0]
+            
+            image_url = anime_data.get('images', {}).get('jpg', {}).get('image_url')
+            mal_url = anime_data.get('url')
+            
+            return image_url, mal_url
+    except Exception as e:
+        # Silently fail - don't break the app if API is down
+        return None, None
+    
+    return None, None
 
 
 def recommendation_system(name, df_local, similarity_matrix, top_n=5):
@@ -272,8 +317,21 @@ if __name__ == '__main__':
                             type_match = '✓' if row['type'] == input_anime['type'] else '✗'
                             rating_diff = abs(row['rating'] - input_anime['rating'])
                             
+                            # Fetch anime image (with rate limiting consideration)
+                            anime_id = df_cached.loc[idx, 'anime_id'] if 'anime_id' in df_cached.columns else None
+                            image_url, mal_url = get_anime_image(row['name'], anime_id)
+                            
                             with st.expander(f"**{row['name']}** — Similarity: {row['similarity']:.1%}", expanded=idx==filtered.index[0]):
-                                col1, col2 = st.columns([1, 2])
+                                col0, col1, col2 = st.columns([1, 1, 2])
+                                
+                                with col0:
+                                    # Display anime poster
+                                    if image_url:
+                                        st.image(image_url, width=150, use_container_width=False)
+                                        if mal_url:
+                                            st.markdown(f"[View on MAL]({mal_url})", unsafe_allow_html=False)
+                                    else:
+                                        st.info('🖼️ No image available')
                                 
                                 with col1:
                                     st.metric('Rating', f"{row['rating']:.2f}/10")
