@@ -246,20 +246,37 @@ if __name__ == '__main__':
     # Main search area
     st.subheader('Select an anime')
     
-    # Autocomplete selectbox for anime selection
-    anime_input = st.selectbox(
+    # Text input with dynamic suggestions
+    anime_input_text = st.text_input(
         'Search for an anime:',
-        options=[''] + sorted(df_cached['name'].tolist()),
-        index=0,
-        help='Start typing to search'
+        placeholder='Start typing anime name...',
+        help='Type at least 1 character to see suggestions'
     )
+    
+    # Show matching suggestions if user has typed something
+    anime_input = ''
+    if anime_input_text:
+        # Find matching anime (case-insensitive)
+        matches = [name for name in df_cached['name'].tolist() 
+                   if anime_input_text.lower() in name.lower()]
+        
+        if matches:
+            # Limit to top 10 matches for cleaner UI
+            top_matches = sorted(matches)[:10]
+            anime_input = st.selectbox(
+                f'Found {len(matches)} matches - Select one:',
+                options=top_matches,
+                index=0
+            )
+        else:
+            st.warning(f'No anime found matching "{anime_input_text}". Try a different search term.')
     
     # Number of recommendations
     top_n = st.slider('Number of recommendations', 1, 20, 5)
 
     if st.button('Get Recommendations', type='primary'):
         if not anime_input:
-            st.error('Please select an anime title.')
+            st.error('Please search for and select an anime title.')
         else:
             with st.spinner('Finding similar anime...'):
                 out = recommendation_system(anime_input, df_cached, features_cached, top_n=top_n * 3)  # Get more initially for filtering
